@@ -1,0 +1,626 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users table
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  phone     String?
+  avatar    String?
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  hotelBookings    HotelBooking[]
+  flightBookings   FlightBooking[]
+  packageBookings  PackageBooking[]
+  activityBookings ActivityBooking[]
+  insurancePolicies InsurancePolicy[]
+  destinationReviews DestinationReview[]
+  tourPackageReviews TourPackageReview[]
+
+  @@map("users")
+}
+
+// Destinations table
+model Destination {
+  id          Int      @id @default(autoincrement())
+  city        String
+  country     String   @default("Việt Nam")
+  province    String
+  description String
+  image       String
+  heroImage   String?
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+  hotels      Int      @default(0)
+  fromPrice   Int      @default(0)
+  toPrice     Int      @default(0)
+  bestTime    String
+  category    String
+  popularity  String
+  slug        String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Weather info
+  temperature String?
+  condition   String?
+  humidity    String?
+  rainfall    String?
+
+  // Transportation
+  flightTime String?
+  ferryTime  String?
+  carTime    String?
+
+  // Relations
+  hotels_relation      Hotel[]
+  activities_relation  Activity[]
+  packages_relation    TourPackage[]
+  reviews             DestinationReview[]
+  highlights          DestinationHighlight[]
+  activities_list     DestinationActivity[]
+
+  @@map("destinations")
+}
+
+// Destination highlights
+model DestinationHighlight {
+  id             Int      @id @default(autoincrement())
+  destinationId  Int
+  name           String
+  description    String
+  image          String
+  rating         Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@map("destination_highlights")
+}
+
+// Destination activities
+model DestinationActivity {
+  id             Int      @id @default(autoincrement())
+  destinationId  Int
+  name           String
+  icon           String
+  description    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@map("destination_activities")
+}
+
+// Hotels table
+model Hotel {
+  id            Int      @id @default(autoincrement())
+  name          String
+  image         String
+  location      String
+  rating        Float    @default(0)
+  reviewCount   Int      @default(0)
+  price         Int
+  originalPrice Int
+  discount      String
+  description   String
+  destinationId Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  destination    Destination?    @relation(fields: [destinationId], references: [id])
+  amenities      HotelAmenity[]
+  roomTypes      HotelRoomType[]
+  bookings       HotelBooking[]
+
+  @@map("hotels")
+}
+
+// Hotel amenities
+model HotelAmenity {
+  id      Int    @id @default(autoincrement())
+  hotelId Int
+  name    String
+
+  // Relations
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@map("hotel_amenities")
+}
+
+// Hotel room types
+model HotelRoomType {
+  id      Int    @id @default(autoincrement())
+  hotelId Int
+  name    String
+
+  // Relations
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  @@map("hotel_room_types")
+}
+
+// Flights table
+model Flight {
+  id             Int      @id @default(autoincrement())
+  airline        String
+  flightNumber   String
+  departure      String
+  arrival        String
+  departureTime  String
+  arrivalTime    String
+  duration       String
+  price          Int
+  originalPrice  Int
+  discount       String
+  stops          String
+  aircraft       String
+  class          String
+  availableSeats Int
+  departureDate  String
+  returnDate     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  features FlightFeature[]
+  bookings FlightBooking[]
+
+  @@map("flights")
+}
+
+// Flight features
+model FlightFeature {
+  id       Int    @id @default(autoincrement())
+  flightId Int
+  name     String
+
+  // Relations
+  flight Flight @relation(fields: [flightId], references: [id], onDelete: Cascade)
+
+  @@map("flight_features")
+}
+
+// Tour packages table
+model TourPackage {
+  id             Int      @id @default(autoincrement())
+  title          String
+  subtitle       String
+  description    String?
+  image          String
+  badge          String?
+  discount       String
+  originalPrice  Int
+  price          Int
+  duration       String
+  groupSize      String
+  departure      String
+  destinationId  Int?
+  rating         Float    @default(0)
+  reviewCount    Int      @default(0)
+  validUntil     String
+  category       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  destination    Destination?    @relation(fields: [destinationId], references: [id])
+  highlights     PackageHighlight[]
+  itinerary     PackageItinerary[]
+  included      PackageIncluded[]
+  notIncluded   PackageNotIncluded[]
+  bookings      PackageBooking[]
+  images        TourPackageImage[]
+  reviews       TourPackageReview[]
+  sections      TourPackageSection[]
+  stops         TourPackageStop[]
+
+  @@map("tour_packages")
+}
+
+// Package highlights
+model PackageHighlight {
+  id            Int    @id @default(autoincrement())
+  packageId     Int
+  description  String
+
+  // Relations
+  package TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("package_highlights")
+}
+
+// Package itinerary
+model PackageItinerary {
+  id        Int    @id @default(autoincrement())
+  packageId Int
+  day       String
+  content   String
+  startTime String?
+  transport String?
+  meals     String?
+
+  // Relations
+  package TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("package_itinerary")
+}
+
+// Package included
+model PackageIncluded {
+  id        Int    @id @default(autoincrement())
+  packageId Int
+  item      String
+
+  // Relations
+  package TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("package_included")
+}
+
+// Package not included
+model PackageNotIncluded {
+  id        Int    @id @default(autoincrement())
+  packageId Int
+  item      String
+
+  // Relations
+  package TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("package_not_included")
+}
+
+// Activities table
+model Activity {
+  id              Int      @id @default(autoincrement())
+  title           String
+  subtitle        String
+  image           String
+  category        String
+  location        String
+  duration        String
+  groupSize       String
+  price           Int
+  originalPrice   Int
+  discount        String
+  rating          Float    @default(0)
+  reviewCount     Int      @default(0)
+  difficulty      String
+  ageRequirement  String
+  schedule        String
+  bestTime        String
+  destinationId   Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  destination     Destination?    @relation(fields: [destinationId], references: [id])
+  included       ActivityIncluded[]
+  highlights     ActivityHighlight[]
+  availableDates ActivityAvailableDate[]
+  bookings       ActivityBooking[]
+
+  @@map("activities")
+}
+
+// Activity included
+model ActivityIncluded {
+  id         Int    @id @default(autoincrement())
+  activityId Int
+  item       String
+
+  // Relations
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@map("activity_included")
+}
+
+// Activity highlights
+model ActivityHighlight {
+  id         Int    @id @default(autoincrement())
+  activityId Int
+  highlight  String
+
+  // Relations
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@map("activity_highlights")
+}
+
+// Activity available dates
+model ActivityAvailableDate {
+  id         Int    @id @default(autoincrement())
+  activityId Int
+  date       String
+
+  // Relations
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@map("activity_available_dates")
+}
+
+// Insurance table
+model Insurance {
+  id                  Int      @id @default(autoincrement())
+  title               String
+  subtitle            String
+  image               String
+  type                String
+  price               Int
+  duration            String
+  coverage            String
+  rating              Float    @default(0)
+  reviewCount         Int      @default(0)
+  claimProcess        String
+  maxAge              Int
+  preExistingConditions Boolean @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  destinations        InsuranceDestination[]
+  features            InsuranceFeature[]
+  exclusions          InsuranceExclusion[]
+  policies            InsurancePolicy[]
+
+  @@map("insurance")
+}
+
+// Insurance destinations
+model InsuranceDestination {
+  id            Int    @id @default(autoincrement())
+  insuranceId   Int
+  destination   String
+
+  // Relations
+  insurance Insurance @relation(fields: [insuranceId], references: [id], onDelete: Cascade)
+
+  @@map("insurance_destinations")
+}
+
+// Insurance features
+model InsuranceFeature {
+  id            Int    @id @default(autoincrement())
+  insuranceId   Int
+  feature       String
+
+  // Relations
+  insurance Insurance @relation(fields: [insuranceId], references: [id], onDelete: Cascade)
+
+  @@map("insurance_features")
+}
+
+// Insurance exclusions
+model InsuranceExclusion {
+  id            Int    @id @default(autoincrement())
+  insuranceId   Int
+  exclusion     String
+
+  // Relations
+  insurance Insurance @relation(fields: [insuranceId], references: [id], onDelete: Cascade)
+
+  @@map("insurance_exclusions")
+}
+
+// Booking tables
+model HotelBooking {
+  id         String   @id @default(cuid())
+  hotelId    Int
+  userId     String
+  checkIn    String
+  checkOut   String
+  guests     Int
+  totalPrice Int
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  hotel Hotel @relation(fields: [hotelId], references: [id])
+  user User  @relation(fields: [userId], references: [id])
+
+  @@map("hotel_bookings")
+}
+
+model FlightBooking {
+  id         String   @id @default(cuid())
+  flightId   Int
+  userId     String
+  passengers Int
+  totalPrice Int
+  status     String   @default("confirmed")
+  bookingCode String  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  flight Flight @relation(fields: [flightId], references: [id])
+  user   User  @relation(fields: [userId], references: [id])
+
+  @@map("flight_bookings")
+}
+
+
+model PackageBooking {
+  id           String   @id @default(cuid())
+  packageId    Int
+  userId       String
+  participants Int
+  totalPrice   Int
+  status       String   @default("confirmed")
+  bookingCode  String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Thêm các trường mới
+  selectedDate    String?  // Ngày khởi hành
+  specialRequests String?  // Yêu cầu đặc biệt (lưu dạng JSON string)
+  contactInfo     String?  // Thông tin liên hệ (lưu dạng JSON string)
+  
+  // Relations
+  package TourPackage @relation(fields: [packageId], references: [id])
+  user    User       @relation(fields: [userId], references: [id])
+  logs BookingLog[]
+  @@map("package_bookings")
+}
+
+model ActivityBooking {
+  id           String   @id @default(cuid())
+  activityId   Int
+  userId       String
+  participants Int
+  selectedDate String
+  totalPrice   Int
+  status       String   @default("confirmed")
+  bookingCode  String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  activity Activity @relation(fields: [activityId], references: [id])
+  user     User    @relation(fields: [userId], references: [id])
+  @@map("activity_bookings")
+}
+
+model BookingLog {
+  id          String   @id @default(cuid())
+  bookingId   String
+  bookingCode String
+  action      String
+  message     String?
+  userId      String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+  booking PackageBooking @relation(fields: [bookingId], references: [id])
+
+  @@map("booking_logs")
+}
+
+
+model InsurancePolicy {
+  id           String   @id @default(cuid())
+  insuranceId  Int
+  userId       String
+  startDate    String
+  endDate      String
+  travelers    Int
+  destinations String[]
+  totalPrice   Int
+  status       String   @default("active")
+  policyNumber String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  insurance Insurance @relation(fields: [insuranceId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("insurance_policies")
+}
+
+// Reviews table
+model DestinationReview {
+  id             Int      @id @default(autoincrement())
+  destinationId  Int
+  userId         String
+  rating         Float
+  comment        String
+  photos         String[]
+  status         String   @default("published")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  destination Destination @relation(fields: [destinationId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
+
+  @@map("destination_reviews")
+}
+
+model TourPackageImage {
+  id         Int    @id @default(autoincrement())
+  packageId  Int
+  url        String
+  caption    String?
+  position   Int    @default(0)
+
+  // Relations
+  package    TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("tour_package_images")
+}
+
+model TourPackageReview {
+  id         Int      @id @default(autoincrement())
+  packageId  Int
+  userId     String?
+  name       String
+  rating     Float
+  comment    String
+  photos     String[]
+  status     String   @default("published")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  package    TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("tour_package_reviews")
+}
+
+model TourPackageSection {
+  id         Int      @id @default(autoincrement())
+  packageId  Int
+  title      String
+  content    String
+  photos     String[]
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  package    TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("tour_package_sections")
+}
+
+model TourPackageStop {
+  id           Int      @id @default(autoincrement())
+  packageId    Int
+  title        String
+  description  String
+  guide        String
+  address      String?
+  latitude     Float?
+  longitude    Float?
+  photos       String[]
+  position     Int      @default(0)
+  tips         String[]
+  bestTime     String?
+  mapThumb     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  package      TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("tour_package_stops")
+}
