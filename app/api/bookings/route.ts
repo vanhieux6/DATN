@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       participants: parseInt(participants),
       totalPrice,
-      status: "confirmed",
+      status: "pending",
       bookingCode: generateBookingCode(),
       selectedDate: selectedDate,
     };

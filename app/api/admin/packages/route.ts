@@ -1,5 +1,6 @@
+// app/api/admin/packages/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '@/app/lib/prisma';
 
 // GET - Lấy danh sách packages
 export async function GET(request: NextRequest) {
@@ -17,12 +18,13 @@ export async function GET(request: NextRequest) {
     
     if (search) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } }, // Đổi từ name thành title
-        { subtitle: { contains: search, mode: 'insensitive' } }, // Thêm subtitle
-        { destination: { 
-            city: { contains: search, mode: 'insensitive' } 
+        { title: { contains: search, mode: 'insensitive' } },
+        { subtitle: { contains: search, mode: 'insensitive' } },
+        { 
+          destination: {
+            city: { contains: search, mode: 'insensitive' }
           }
-        } // Sửa cách search destination
+        }
       ];
     }
 
@@ -42,6 +44,12 @@ export async function GET(request: NextRequest) {
             select: {
               city: true,
               province: true
+            }
+          },
+          _count: {
+            select: {
+              bookings: true,
+              reviews: true
             }
           }
         }
@@ -73,7 +81,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validation - sử dụng field names từ schema
-    const requiredFields = ['title', 'subtitle', 'duration', 'price'];
+    const requiredFields = ['title', 'duration', 'price'];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -86,19 +94,20 @@ export async function POST(request: NextRequest) {
     // Tạo package mới trong database
     const tourPackage = await prisma.tourPackage.create({
       data: {
-        title: body.title, // Đổi từ name thành title
-        subtitle: body.subtitle, // Thêm subtitle
+        title: body.title,
+        subtitle: body.subtitle || '',
+        description: body.description || '',
         image: body.image || 'https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?w=800&h=600&fit=crop',
         badge: body.badge || null,
         discount: body.discount || '0%',
-        originalPrice: body.originalPrice || body.price,
-        price: body.price,
+        originalPrice: parseFloat(body.originalPrice) || parseFloat(body.price),
+        price: parseFloat(body.price),
         duration: body.duration,
-        groupSize: body.groupSize || '1-20 người', // Đổi từ maxGroupSize thành groupSize
+        groupSize: body.groupSize || '1-20 người',
         departure: body.departure || 'Hà Nội',
-        destinationId: body.destinationId || null, // Sử dụng destinationId thay vì destination string
-        rating: body.rating || 0,
-        reviewCount: body.reviewCount || 0,
+        destinationId: body.destinationId || null,
+        rating: 0,
+        reviewCount: 0,
         validUntil: body.validUntil || '2024-12-31',
         category: body.category || 'General'
       },

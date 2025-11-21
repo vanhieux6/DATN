@@ -331,6 +331,7 @@ function PackagesContent() {
     { value: "Nha Trang", label: "Nha Trang" },
     { value: "Hà Nội", label: "Hà Nội" },
     { value: "TP.HCM", label: "TP.HCM" },
+    
   ];
 
   const priceRanges = [

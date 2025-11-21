@@ -1,70 +1,37 @@
-// app/api/admin/flights/[id]/route.ts
-import { NextResponse } from "next/server";
-
-import jwt from "jsonwebtoken";
+// app/api/flights/[id]/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-
-// Hàm helper để verify admin
-async function verifyAdmin(request: any) {
-  const token = request.cookies.get("admin_token")?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-    });
-
-    if (!user || user.role !== "admin") {
-      return null;
-    }
-
-    return user;
-  } catch (error) {
-    return null;
-  }
-}
-
-// GET - Lấy chi tiết chuyến bay
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await verifyAdmin(request);
+    const { id } = await params;
+    const flightId = parseInt(id);
 
-    if (!user) {
+    if (isNaN(flightId)) {
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
+        { success: false, message: "Invalid flight ID" },
+        { status: 400 }
       );
     }
 
     const flight = await prisma.flight.findUnique({
-      where: { id: parseInt(params.id) },
-      include: {
-        features: true,
-      },
+      where: { id: flightId },
+      include: { features: true },
     });
 
     if (!flight) {
       return NextResponse.json(
-        { success: false, message: "Không tìm thấy chuyến bay" },
+        { success: false, message: "Flight not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      flight,
-    });
+    return NextResponse.json({ success: true, flight });
   } catch (error) {
-    console.error("Error fetching flight:", error);
+    console.error("Error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
       { status: 500 }

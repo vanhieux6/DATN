@@ -1,4 +1,4 @@
-// File: app/api/admin/flight/[id]/route.ts
+// File: app/api/admin/flights/[id]/route.ts
 import { prisma } from "@/app/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
@@ -10,9 +10,9 @@ interface RouteContext {
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 // ==========================
-// Helper verify admin
+// Helper verify admin - KHÔNG EXPORT
 // ==========================
-export async function verifyAdmin(request: any) {
+async function verifyAdmin(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value;
 
   if (!token) return null;
@@ -58,7 +58,7 @@ async function findFlight(id: number) {
 // ==========================
 // GET — Lấy flight theo ID
 // ==========================
-export async function GET(_req: NextRequest, context: RouteContext) {
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const id = await getId(context.params);
     const flight = await findFlight(id);
@@ -83,12 +83,11 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 // PUT — Update flight
 // ==========================
 export async function PUT(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  context: RouteContext
 ) {
   try {
-    const { id } = await context.params;
-    const flightId = Number(id);
+    const id = await getId(context.params);
     const user = await verifyAdmin(request);
     if (!user) {
       return NextResponse.json(
@@ -101,7 +100,7 @@ export async function PUT(
     console.log("=== UPDATE FLIGHT REQUEST ===", body);
 
     const existingFlight = await prisma.flight.findUnique({
-      where: { id: flightId },
+      where: { id },
     });
 
     if (!existingFlight) {
@@ -122,7 +121,7 @@ export async function PUT(
     // Transaction update
     const flight = await prisma.$transaction(async (tx) => {
       const updatedFlight = await tx.flight.update({
-        where: { id: flightId },
+        where: { id },
         data: {
           airline: body.airline ?? existingFlight.airline,
           flightNumber: body.flightNumber ?? existingFlight.flightNumber,
@@ -153,13 +152,13 @@ export async function PUT(
       // Update features
       if (Array.isArray(body.features)) {
         await tx.flightFeature.deleteMany({
-          where: { flightId },
+          where: { flightId: id },
         });
 
         if (body.features.length > 0) {
           await tx.flightFeature.createMany({
             data: body.features.map((feature: string) => ({
-              flightId,
+              flightId: id,
               name: feature,
             })),
           });
@@ -187,10 +186,11 @@ export async function PUT(
 // DELETE — Xóa flight
 // ==========================
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: RouteContext
 ) {
   try {
+    const id = await getId(context.params);
     const user = await verifyAdmin(request);
     if (!user) {
       return NextResponse.json(
@@ -199,10 +199,8 @@ export async function DELETE(
       );
     }
 
-    const flightId = parseInt(params.id);
-
     const bookings = await prisma.flightBooking.findMany({
-      where: { flightId },
+      where: { flightId: id },
     });
 
     if (bookings.length > 0) {
@@ -217,11 +215,11 @@ export async function DELETE(
     }
 
     await prisma.flightFeature.deleteMany({
-      where: { flightId },
+      where: { flightId: id },
     });
 
     await prisma.flight.delete({
-      where: { id: flightId },
+      where: { id },
     });
 
     return NextResponse.json({
